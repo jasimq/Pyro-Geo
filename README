@@ -1,0 +1,6 @@
+A geo services API that is used to store and retrieve object locations in mysql. 
+
+FEATURES:
+- Optimized using memcache, binary data storage and MD5 indexes
+- Supports multiple users per multiple clients. Optimized using the MD5 indexes.
+- Store and retrieve latitudes and longitudes.
