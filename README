@@ -1,0 +1,2 @@
+A geo services API that is used to store and retrieve object locations in mysql. 
+Optimized using memcache, binary data storage and mad5 indexes
