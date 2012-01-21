@@ -17,49 +17,51 @@ function find_nearby()
 
     if(isset($_REQUEST['obj_id']))
     {
-	$obj_id = $request->data['obj_id'];
-	$user_location = get_obj_location($obj_id);
-	$where_str = " AND obj_id != $obj_id ";
-	$cache_str = "nearby-list-$obj_id-$radius-{$request->output}";
+        $obj_id = $request->data['obj_id'];
+        $user_location = get_obj_location($obj_id);
+        $where_str = " AND obj_id != $obj_id ";
+        $cache_str = "nearby-list-$obj_id-$radius-{$request->output}";
     }
     else
     {
-	$user_location = array('latitude' => $request->clean($_REQUEST['latitude']), 'longitude' => $request->clean($_REQUEST['longitude']));
-	$cache_str = "nearby-list-{$user_location['latitude']}-{$user_location['longitude']}"; 
-	$where_str = "";
+        $user_location = array('latitude' => $request->clean($_REQUEST['latitude']), 'longitude' => $request->clean($_REQUEST['longitude']));
+        $cache_str = "nearby-list-{$user_location['latitude']}-{$user_location['longitude']}"; 
+        $where_str = "";
     }
 
     $nearby_list = Cache::getMem()->get($cache_str);
 
     if(empty($nearby_list)) {   
 
-    $sql = "SELECT obj_id, latitude, longitude, last_update, 
-        ( $miles * acos( cos( radians( {$user_location['latitude']} ) ) * cos( radians( latitude ) ) * cos( radians( longitude  ) - radians( {$user_location['longitude']}) ) + sin( radians({$user_location['latitude']} ) ) * sin( radians( latitude ) ) ) ) AS distance 
-        FROM geo HAVING distance < $radius $where_str ORDER BY distance LIMIT 0 , $limit";
-    $res = mysql_query($sql, $conn) or die(mysql_error());
-    
-    $meta = array('code' => '1', 'count' => mysql_num_rows($res));    
-    if(isset($_REQUEST['obj_id']))
-        $meta['obj_id'] = $request->data['obj_id']; 
+        $sql = "SELECT obj_id, latitude, longitude, last_update, 
+            ( $miles * acos( cos( radians( {$user_location['latitude']} ) ) * cos( radians( latitude ) ) * cos( radians( longitude  ) - radians( {$user_location['longitude']}) ) + sin( radians({$user_location['latitude']} ) ) * sin( radians( latitude ) ) ) ) AS distance 
+            FROM geo HAVING distance < $radius $where_str ORDER BY distance LIMIT 0 , $limit";
+        $res = mysql_query($sql, $conn) or die(mysql_error());
+        
+        $meta = array('code' => '1', 'count' => mysql_num_rows($res));    
 
-    $output = array();
-    $objects = array(); 
-    while($row = mysql_fetch_array($res))
-    {
-        $object = array('obj_id' => $row['obj_id'], 'latitude' => $row['latitude'], 'longitude' => $row['longitude'], 'distance' => $row['distance'], 'last_update' => $row['last_update']);
-        $user = get_user_profile($row['obj_id'], false);
-        $object = array_merge($object, array('user' => $user));
+        if(isset($_REQUEST['obj_id']))
+            $meta['obj_id'] = $request->data['obj_id']; 
 
-        array_push($objects, $object);
-    }
-	$output = array_merge($output, $meta);
-	$output = array_merge($output, array('objects' => $objects));
+        $output = array();
+        $objects = array(); 
+        while($row = mysql_fetch_array($res))
+        {
+            $object = array('obj_id' => $row['obj_id'], 'latitude' => $row['latitude'], 'longitude' => $row['longitude'], 'distance' => $row['distance'], 'last_update' => $row['last_update']);
+            $user = get_user_profile($row['obj_id'], false);
+            $object = array_merge($object, array('user' => $user));
 
-	Cache::getMem()->set($cache_str, $output, 0, 10);
-	echo format_output($request->output, $output);
+            array_push($objects, $object);
+        }
+
+        $output = array_merge($output, $meta);
+        $output = array_merge($output, array('objects' => $objects));
+
+        Cache::getMem()->set($cache_str, $output, 0, 10);
+        echo format_output($request->output, $output);
     }
     else
-	echo $nearby_list;
+        echo $nearby_list;
 }
 
 function post()
@@ -68,22 +70,22 @@ function post()
     global $request;
 
     if(!validate_fields($request, array('obj_id', 'latitude', 'longitude')))	{
-	die(bad_request());
+        die(bad_request());
     }
 
     $sql = "INSERT INTO geo (client_id, obj_id, hash_key, latitude, longitude, last_update) 
-    VALUES ('{$_SESSION['app_id']}', 
-    '{$request->data['obj_id']}', 
-    UNHEX(MD5('{$_SESSION['app_id']}:{$request->data['obj_id']}')), 
-    '{$request->data['latitude']}', 
-    '{$request->data['longitude']}', UTC_TIMESTAMP() )";
+        VALUES ('{$_SESSION['app_id']}', 
+        '{$request->data['obj_id']}', 
+        UNHEX(MD5('{$_SESSION['app_id']}:{$request->data['obj_id']}')), 
+        '{$request->data['latitude']}', 
+        '{$request->data['longitude']}', UTC_TIMESTAMP() )";
 
     $res = mysql_query($sql, $conn) or die(mysql_error());
 
     if($res)
-	echo successful_request();
+        echo successful_request();
     else
-	echo bad_request();
+        echo bad_request();
 }
 
 function get()
@@ -92,19 +94,19 @@ function get()
     global $request;
 
     if(!validate_fields($request, array('obj_id'))) {
-	die(bad_request());
+        die(bad_request());
     }
     
     $row = Cache::getMem()->get("get-obj-row-{$_SESSION['app_id']}-{$request->data['obj_id']}");
 
     if(empty($row))
     {
-	//TODO: add where check for last_update field
-	$sql = "SELECT obj_id, latitude, longitude, last_update FROM geo WHERE hash_key = UNHEX(MD5('{$_SESSION['app_id']}:{$request->data['obj_id']}'))";
-	$res = mysql_query($sql, $conn) or die(mysql_error());
-	$row = mysql_fetch_array($res);
+        //TODO: add where check for last_update field
+        $sql = "SELECT obj_id, latitude, longitude, last_update FROM geo WHERE hash_key = UNHEX(MD5('{$_SESSION['app_id']}:{$request->data['obj_id']}'))";
+        $res = mysql_query($sql, $conn) or die(mysql_error());
+        $row = mysql_fetch_array($res);
 
-	Cache::getMem()->set("get-obj-row-{$_SESSION['app_id']}-{$request->data['obj_id']}", $row, 0, 15);
+        Cache::getMem()->set("get-obj-row-{$_SESSION['app_id']}-{$request->data['obj_id']}", $row, 0, 15);
     }
     
     $temp = array('obj_id' => $row['obj_id'], 'latitude' => $row['latitude'], 'longitude' => $row['longitude'], 'last_update' => $row['last_update']);
@@ -118,7 +120,7 @@ function delete()
     global $request;
 
     if(!validate_fields($request, array('obj_id'))) {
-	die(bad_request());
+        die(bad_request());
     }
 
     // Use this when queing mechanism is in place
@@ -127,9 +129,9 @@ function delete()
     $res = mysql_query($sql, $conn) or die(mysql_error());
 
     if($res)
-	echo successful_request();
+        echo successful_request();
     else
-	echo bad_request();
+        echo bad_request();
 }
 
 function get_obj_location($id)
